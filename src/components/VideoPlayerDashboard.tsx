@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import VideoPlayer from "./VideoPlayer";
 import CameraList from "./CameraList";
@@ -49,6 +48,13 @@ const VideoPlayerDashboard = () => {
   );
   const [searchViewerQuery, setSearchViewerQuery] = useState("");
   const [searchViewerHtml, setSearchViewerHtml] = useState<string | null>(null);
+  const [hostnames, setHostnames] = useState("");
+  const [censysId, setCensysId] = useState(
+    () => localStorage.getItem("censysId") || ""
+  );
+  const [censysSecret, setCensysSecret] = useState(
+    () => localStorage.getItem("censysSecret") || ""
+  );
 
   useEffect(() => {
     if (shodanKey) {
@@ -57,6 +63,19 @@ const VideoPlayerDashboard = () => {
       localStorage.removeItem("shodanKey");
     }
   }, [shodanKey]);
+
+  useEffect(() => {
+    if (censysId) {
+      localStorage.setItem("censysId", censysId);
+    } else {
+      localStorage.removeItem("censysId");
+    }
+    if (censysSecret) {
+      localStorage.setItem("censysSecret", censysSecret);
+    } else {
+      localStorage.removeItem("censysSecret");
+    }
+  }, [censysId, censysSecret]);
 
   // Helper to add logs to tool status panel
   function appendLog(line: string) {
@@ -69,7 +88,6 @@ const VideoPlayerDashboard = () => {
     setCameras([]); // Clear camera list
     setPlayerUrl(""); // Clear video player
   };
-
 
   // Maps backend discovered objects to CameraInfo for our frontend
   function parseDiscoveredCameras(back: BackendCamera[]): CameraInfo[] {
@@ -99,7 +117,6 @@ const VideoPlayerDashboard = () => {
   ) {
     setScanning(true);
     setScanLogs([]);
-    const target = country ? `country ${country}` : network;
     const toolName = {
       discovery: "Camera Discovery",
       scan: "CCTV Network Scan",
@@ -110,10 +127,22 @@ const VideoPlayerDashboard = () => {
       kamerka: "Kamerka Scan",
       'search-viewer': "Search Viewer",
       'cameradar': "RTSP Attack",
-      'search-protocol': "IPCam Search Protocol"
+      'search-protocol': "IPCam Search Protocol",
+      'ddns-scan': "DDNS Scan"
     }[path] || path;
 
-    appendLog(`> Running ${toolName}... (${body?.query || target})`);
+    let logTarget;
+    if (path === 'exploit') {
+      logTarget = body?.target;
+    } else if (path === 'search-viewer') {
+      logTarget = body?.query;
+    } else if (path === 'ddns-scan') {
+      logTarget = 'from hostnames list';
+    } else {
+      logTarget = country ? `country ${country}` : network;
+    }
+
+    appendLog(`> Running ${toolName}... (${logTarget || ''})`);
 
     try {
       const opts: RequestInit =
@@ -239,6 +268,18 @@ const VideoPlayerDashboard = () => {
           appendLog("[ERROR] Please provide a query for the Search Viewer tool.");
         }
         break;
+      case "ddns_scan":
+        if (hostnames) {
+          runTool("ddns-scan", "POST", { 
+            hostnames,
+            shodan_key: shodanKey || undefined,
+            censys_id: censysId || undefined,
+            censys_secret: censysSecret || undefined,
+          });
+        } else {
+          appendLog("[ERROR] Please provide a list of hostnames for the DDNS Scan tool.");
+        }
+        break;
       default:
         appendLog("Unknown tool selected.");
         break;
@@ -356,6 +397,13 @@ const VideoPlayerDashboard = () => {
               disabled={scanning}
             >🔎 Search Viewer</button>
           </li>
+          <li>
+            <button
+              className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "ddns_scan" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
+              onClick={() => handleSelectTool("ddns_scan")}
+              disabled={scanning}
+            >📡 DDNS Scan</button>
+          </li>
         </ul>
         <div className="px-6 pb-2 mt-2 flex gap-2 flex-col">
           <button
@@ -403,6 +451,12 @@ const VideoPlayerDashboard = () => {
               scanning={scanning}
               searchViewerQuery={searchViewerQuery}
               setSearchViewerQuery={setSearchViewerQuery}
+              hostnames={hostnames}
+              setHostnames={setHostnames}
+              censysId={censysId}
+              setCensysId={setCensysId}
+              censysSecret={censysSecret}
+              setCensysSecret={setCensysSecret}
             />
             <ToolStatusPanel logs={scanLogs} scanning={scanning} tool={selectedTool} />
           </aside>

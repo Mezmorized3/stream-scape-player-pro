@@ -9,9 +9,15 @@ interface ToolOptionsPanelProps {
   scanning: boolean;
   searchViewerQuery: string;
   setSearchViewerQuery: (query: string) => void;
+  hostnames: string;
+  setHostnames: (hostnames: string) => void;
+  censysId: string;
+  setCensysId: (id: string) => void;
+  censysSecret: string;
+  setCensysSecret: (secret: string) => void;
 }
 
-const ExploitOptions = ({ exploitTarget, setExploitTarget, scanning }: Omit<ToolOptionsPanelProps, 'selectedTool' | 'shodanKey' | 'setShodanKey' | 'searchViewerQuery' | 'setSearchViewerQuery'>) => {
+const ExploitOptions = ({ exploitTarget, setExploitTarget, scanning }: Omit<ToolOptionsPanelProps, 'selectedTool' | 'shodanKey' | 'setShodanKey' | 'searchViewerQuery' | 'setSearchViewerQuery' | 'hostnames' | 'setHostnames' | 'censysId' | 'setCensysId' | 'censysSecret' | 'setCensysSecret'>) => {
   return (
     <div>
       <h3 className="font-semibold text-base mb-2">Exploit Options</h3>
@@ -74,6 +80,99 @@ const SearchViewerOptions = ({ searchViewerQuery, setSearchViewerQuery, scanning
   );
 };
 
+const DDNSOptions = ({
+  hostnames,
+  setHostnames,
+  shodanKey,
+  setShodanKey,
+  censysId,
+  setCensysId,
+  censysSecret,
+  setCensysSecret,
+  scanning,
+}: Pick<
+  ToolOptionsPanelProps,
+  | "hostnames"
+  | "setHostnames"
+  | "shodanKey"
+  | "setShodanKey"
+  | "censysId"
+  | "setCensysId"
+  | "censysSecret"
+  | "setCensysSecret"
+  | "scanning"
+>) => {
+  return (
+    <div>
+      <h3 className="font-semibold text-base mb-2">DDNS Scan Options</h3>
+      <label
+        htmlFor="hostnames"
+        className="block text-xs mb-1 text-[#a3a3a3]"
+      >
+        Hostnames (one per line):
+      </label>
+      <textarea
+        id="hostnames"
+        value={hostnames}
+        onChange={(e) => setHostnames(e.target.value)}
+        className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none h-24 resize-y"
+        placeholder="example.ddns.net&#10;another.ddns.org"
+        disabled={scanning}
+      />
+
+      <label
+        htmlFor="shodan-key-ddns"
+        className="block text-xs mb-1 text-[#a3a3a3]"
+      >
+        Shodan API Key (optional):
+      </label>
+      <input
+        id="shodan-key-ddns"
+        type="password"
+        value={shodanKey}
+        onChange={(e) => setShodanKey(e.target.value)}
+        className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none"
+        placeholder="Shodan API Key"
+        disabled={scanning}
+      />
+
+      <label
+        htmlFor="censys-id"
+        className="block text-xs mb-1 text-[#a3a3a3]"
+      >
+        Censys ID (optional):
+      </label>
+      <input
+        id="censys-id"
+        type="password"
+        value={censysId}
+        onChange={(e) => setCensysId(e.target.value)}
+        className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none"
+        placeholder="Censys ID"
+        disabled={scanning}
+      />
+      <label
+        htmlFor="censys-secret"
+        className="block text-xs mb-1 text-[#a3a3a3]"
+      >
+        Censys Secret (optional):
+      </label>
+      <input
+        id="censys-secret"
+        type="password"
+        value={censysSecret}
+        onChange={(e) => setCensysSecret(e.target.value)}
+        className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none"
+        placeholder="Censys Secret"
+        disabled={scanning}
+      />
+      <p className="text-xs text-muted-foreground">
+        API Keys are optional and saved in your browser's local storage.
+      </p>
+    </div>
+  );
+};
+
 export default function ToolOptionsPanel({
   selectedTool,
   exploitTarget,
@@ -83,6 +182,12 @@ export default function ToolOptionsPanel({
   scanning,
   searchViewerQuery,
   setSearchViewerQuery,
+  hostnames,
+  setHostnames,
+  censysId,
+  setCensysId,
+  censysSecret,
+  setCensysSecret,
 }: ToolOptionsPanelProps) {
   const renderToolOptions = () => {
     switch (selectedTool) {
@@ -107,6 +212,20 @@ export default function ToolOptionsPanel({
           <SearchViewerOptions
             searchViewerQuery={searchViewerQuery}
             setSearchViewerQuery={setSearchViewerQuery}
+            scanning={scanning}
+          />
+        );
+      case 'ddns_scan':
+        return (
+          <DDNSOptions
+            hostnames={hostnames}
+            setHostnames={setHostnames}
+            shodanKey={shodanKey}
+            setShodanKey={setShodanKey}
+            censysId={censysId}
+            setCensysId={setCensysId}
+            censysSecret={censysSecret}
+            setCensysSecret={setCensysSecret}
             scanning={scanning}
           />
         );

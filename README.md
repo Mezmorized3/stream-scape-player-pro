@@ -1,13 +1,3 @@
-_____                            _             ____
-|_   _|                          | |           / __ \
-  | |  _ __ ___  _ __   __ _ _ __| | __ _ _ __ | |  | |_ __ __ _ _ __   __ _  ___
-  | | | '_ ` _ \| '_ \ / _` | '__| |/ _` | '_ \| |  | | '__/ _` | '_ \ / _` |/ __|
- _| |_| | | | | | |_) | (_| | |  | | (_| | | | | |__| | | | (_| | | | | (_| | (__
-|_____|_| |_| |_| .__/ \__,_|_|  |_|\__,_|_| |_|\____/|_|  \__,_|_| |_|\__,_|\___|
-                | |
-                |_|
-```
-
 # Imperial Scan - CCTV Security Testing Platform
 
 A comprehensive CCTV security testing platform that integrates multiple penetration testing tools with a modern React dashboard and Shinobi NVR capabilities.
@@ -17,7 +7,7 @@ A comprehensive CCTV security testing platform that integrates multiple penetrat
 - **Frontend**: React, TypeScript, Tailwind CSS, Vite
 - **Backend**: Flask (Python)
 - **NVR**: Shinobi Systems
-- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, xray, Kamerka, Search_Viewer
+- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, xray, Kamerka, Search_Viewer, cctv-ddns-shodan-censys
 
 ## 🚀 Quick Start
 
@@ -58,7 +48,7 @@ cd server
 
 2. **Install Python dependencies**
 ```bash
-pip install flask flask-cors requests beautifulsoup4 googlesearch-python
+pip install flask flask-cors requests beautifulsoup4 googlesearch-python shodan censys dnspython
 ```
 
 3. **Clone security tools**
@@ -81,14 +71,12 @@ go install github.com/evilsocket/xray/cmd/xray@latest
 # Kamerka (Python)
 pip install kamerka
 
+# cctv-ddns
+git clone https://github.com/zveriu/cctv-ddns-shodan-censys.git cctv-ddns
+cd cctv-ddns && pip install -r requirements.txt && cd ..
+
 # IPCam Search Protocol
 git clone https://github.com/mcw0/ipcam_search_protocol.git
-
-# Search_Viewer
-git clone https://github.com/G3et/Search_Viewer.git
-
-# Shinobi NVR
-git clone https://gitlab.com/Shinobi-Systems/Shinobi.git
 ```
 
 4. **Create Flask server**
@@ -105,6 +93,8 @@ import subprocess
 import json
 import os
 import requests
+import shodan
+import censys
 
 app = Flask(__name__)
 CORS(app)
@@ -234,6 +224,70 @@ def exploit():
         '--target', target, '--json'
     ]))
 
+@app.route('/ddns-scan', methods=['POST'])
+def ddns_scan():
+    """cctv-ddns-shodan-censys DDNS scanner"""
+    data = request.get_json()
+    if not data or 'hostnames' not in data:
+        return jsonify({'error': 'Hostnames are required'})
+
+    hostnames = data['hostnames']
+    
+    # Write hostnames to a temporary file
+    temp_file_path = 'cctv-ddns/hostnames.tmp.txt'
+    with open(temp_file_path, 'w') as f:
+        f.write(hostnames)
+    
+    cmd = [
+        'python3', 'cctv-ddns/cctv-ddns.py',
+        '--file', 'hostnames.tmp.txt'
+    ]
+
+    if data.get('shodan_key'):
+        cmd.extend(['--shodan-key', data['shodan_key']])
+    if data.get('censys_id') and data.get('censys_secret'):
+        cmd.extend([
+            '--censys-id', data['censys_id'],
+            '--censys-secret', data['censys_secret']
+        ])
+
+    # The tool's output is not clean JSON, so we handle it as raw text
+    # It prints JSON objects per line, but run_tool expects a single JSON object.
+    # We will grab raw output.
+    tool_dir = 'cctv-ddns'
+    
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=os.path.abspath(tool_dir),
+            timeout=300
+        )
+        if proc.returncode != 0:
+             return jsonify({'error': proc.stderr.strip() or 'Command failed'})
+        
+        # The tool prints JSON objects line-by-line. Let's wrap them in an array.
+        output_lines = proc.stdout.strip().split('\n')
+        json_lines = [line for line in output_lines if line.strip().startswith('{')]
+        
+        # This might still fail if there's other text, but it's a good attempt
+        try:
+            json_output = json.loads(f'[{",".join(json_lines)}]')
+            return jsonify(json_output)
+        except json.JSONDecodeError:
+            # Fallback to raw output if JSON parsing fails
+            return jsonify({'output': proc.stdout.strip()})
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'DDNS Scan command timed out'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
 @app.route('/search-viewer')
 def search_viewer():
     """Search_Viewer OSINT tool"""
@@ -360,6 +414,7 @@ node shinobi.js
    - **RTSP Attack**: Brute force RTSP streams with Cameradar
    - **Kamerka Scan**: Discover RTSP streams using Shodan
    - **Camera Exploitation**: Exploit vulnerabilities with EyePwn
+   - **DDNS Scan**: Find cameras from a list of DDNS hostnames
    - **Shinobi NVR**: Manage NVR platform
    - **Search Viewer**: OSINT data collection and graph generation
 
@@ -461,6 +516,7 @@ ImperialScan/
 │   ├── ipcam_search_protocol/ # IP camera search
 │   ├── Search_Viewer/       # OSINT graph tool
 │   └── Shinobi/            # NVR platform
+│   └── cctv-ddns/          # DDNS scanner
 └── README.md
 ```
 
@@ -500,6 +556,11 @@ ImperialScan/
 - OSINT data collection from search engines
 - Generates interactive graphs of connections
 - Useful for mapping relationships and discovering information
+
+### cctv-ddns-shodan-censys
+- Finds CCTV cameras via DDNS hostnames
+- Integrates with Shodan and Censys for extra data
+- Requires a list of hostnames to scan
 
 ### IPCam Search Protocol
 - Protocol-level camera discovery
@@ -551,6 +612,20 @@ CAMERADAR_TIMEOUT=60
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
+
+## 📄 License
+
+This project is for educational and authorized security testing purposes only.
+
+## 🆘 Support
+
+- **Lovable Documentation**: https://docs.lovable.dev/
+- **GitHub Issues**: Create an issue for bugs or feature requests
+- **Security Tools**: Refer to individual tool documentation
+
+## ⚠️ Disclaimer
+
+This tool is intended for authorized security testing only. Users are responsible for ensuring they have proper authorization before scanning or testing any networks or devices. The developers are not responsible for any misuse of this software.
 
 ## 📄 License
 
