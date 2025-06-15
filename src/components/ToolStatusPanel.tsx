@@ -18,6 +18,7 @@ export default function ToolStatusPanel({
     shinobi: "Shinobi NVR",
     xray: "X-Ray Scan",
     kamerka: "Kamerka Scan",
+    search_viewer: "Search Viewer",
   }[tool] || "Unknown";
   return (
     <section className="w-full rounded-lg bg-[#181a20]/95 border border-[#23272f] p-4 shadow-inner flex-1 overflow-auto flex flex-col min-h-0">

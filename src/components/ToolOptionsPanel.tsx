@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface ToolOptionsPanelProps {
@@ -8,9 +7,11 @@ interface ToolOptionsPanelProps {
   shodanKey: string;
   setShodanKey: (key: string) => void;
   scanning: boolean;
+  searchViewerQuery: string;
+  setSearchViewerQuery: (query: string) => void;
 }
 
-const ExploitOptions = ({ exploitTarget, setExploitTarget, scanning }: Omit<ToolOptionsPanelProps, 'selectedTool' | 'shodanKey' | 'setShodanKey'>) => {
+const ExploitOptions = ({ exploitTarget, setExploitTarget, scanning }: Omit<ToolOptionsPanelProps, 'selectedTool' | 'shodanKey' | 'setShodanKey' | 'searchViewerQuery' | 'setSearchViewerQuery'>) => {
   return (
     <div>
       <h3 className="font-semibold text-base mb-2">Exploit Options</h3>
@@ -53,6 +54,26 @@ const KamerkaOptions = ({ shodanKey, setShodanKey, scanning }: Pick<ToolOptionsP
   );
 };
 
+const SearchViewerOptions = ({ searchViewerQuery, setSearchViewerQuery, scanning }: Pick<ToolOptionsPanelProps, 'searchViewerQuery' | 'setSearchViewerQuery' | 'scanning'>) => {
+  return (
+    <div>
+      <h3 className="font-semibold text-base mb-2">Search Viewer Options</h3>
+      <label htmlFor="search-viewer-query" className="block text-xs mb-1 text-[#a3a3a3]">
+        Search Query:
+      </label>
+      <input
+        id="search-viewer-query"
+        type="text"
+        value={searchViewerQuery}
+        onChange={(e) => setSearchViewerQuery(e.target.value)}
+        className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none"
+        placeholder="e.g., 'CCTV vulnerabilities'"
+        disabled={scanning}
+      />
+    </div>
+  );
+};
+
 export default function ToolOptionsPanel({
   selectedTool,
   exploitTarget,
@@ -60,6 +81,8 @@ export default function ToolOptionsPanel({
   shodanKey,
   setShodanKey,
   scanning,
+  searchViewerQuery,
+  setSearchViewerQuery,
 }: ToolOptionsPanelProps) {
   const renderToolOptions = () => {
     switch (selectedTool) {
@@ -76,6 +99,14 @@ export default function ToolOptionsPanel({
           <KamerkaOptions
             shodanKey={shodanKey}
             setShodanKey={setShodanKey}
+            scanning={scanning}
+          />
+        );
+      case 'search_viewer':
+        return (
+          <SearchViewerOptions
+            searchViewerQuery={searchViewerQuery}
+            setSearchViewerQuery={setSearchViewerQuery}
             scanning={scanning}
           />
         );

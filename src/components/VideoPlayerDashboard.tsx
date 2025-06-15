@@ -47,6 +47,8 @@ const VideoPlayerDashboard = () => {
   const [shodanKey, setShodanKey] = useState(
     () => localStorage.getItem("shodanKey") || ""
   );
+  const [searchViewerQuery, setSearchViewerQuery] = useState("");
+  const [searchViewerHtml, setSearchViewerHtml] = useState<string | null>(null);
 
   useEffect(() => {
     if (shodanKey) {
@@ -60,6 +62,14 @@ const VideoPlayerDashboard = () => {
   function appendLog(line: string) {
     setScanLogs((logs) => [...logs, line]);
   }
+
+  const handleSelectTool = (tool: string) => {
+    setSelectedTool(tool);
+    setSearchViewerHtml(null); // Clear search viewer results
+    setCameras([]); // Clear camera list
+    setPlayerUrl(""); // Clear video player
+  };
+
 
   // Maps backend discovered objects to CameraInfo for our frontend
   function parseDiscoveredCameras(back: BackendCamera[]): CameraInfo[] {
@@ -90,7 +100,21 @@ const VideoPlayerDashboard = () => {
     setScanning(true);
     setScanLogs([]);
     const target = country ? `country ${country}` : network;
-    appendLog(`> Running ${path}... (${target})`);
+    const toolName = {
+      discovery: "Camera Discovery",
+      scan: "CCTV Network Scan",
+      attack: "RTSP Attack",
+      exploit: "Camera Exploitation",
+      shinobi: "Shinobi NVR",
+      xray: "X-Ray Scan",
+      kamerka: "Kamerka Scan",
+      'search-viewer': "Search Viewer",
+      'cameradar': "RTSP Attack",
+      'search-protocol': "IPCam Search Protocol"
+    }[path] || path;
+
+    appendLog(`> Running ${toolName}... (${body?.query || target})`);
+
     try {
       const opts: RequestInit =
         method === "POST"
@@ -119,6 +143,14 @@ const VideoPlayerDashboard = () => {
             setScanning(false);
             return;
           }
+        } else if (path === "search-viewer") {
+          if (body?.query) {
+            params.set("query", body.query);
+          } else {
+            appendLog("[ERROR] Search query is required for Search Viewer.");
+            setScanning(false);
+            return;
+          }
         }
 
         const queryString = params.toString();
@@ -135,6 +167,12 @@ const VideoPlayerDashboard = () => {
       if (data.error) {
         appendLog(`[ERROR] ${data.error}`);
         setCameras([]);
+      } else if (data.html_content) {
+        setSearchViewerHtml(data.html_content);
+        appendLog("Search Viewer graph generated successfully.");
+        if (data.output) {
+          data.output.split('\n').forEach((line: string) => appendLog(line));
+        }
       } else if (Array.isArray(data)) {
         // Typical: result from scan/discover/cameradar
         setCameras(parseDiscoveredCameras(data));
@@ -150,6 +188,10 @@ const VideoPlayerDashboard = () => {
         });
       } else {
         appendLog("Tool did not return a recognized devices list.");
+         if (data.output) { // Also show raw output if available
+            appendLog('--- RAW OUTPUT ---');
+            appendLog(typeof data.output === 'string' ? data.output : JSON.stringify(data.output, null, 2));
+        }
       }
     } catch (err: any) {
       appendLog("[ERROR] " + (err?.message || err));
@@ -189,6 +231,13 @@ const VideoPlayerDashboard = () => {
       case "shinobi":
         // Shinobi configuration and scanning
         runTool("shinobi");
+        break;
+      case "search_viewer":
+        if (searchViewerQuery) {
+          runTool("search-viewer", "GET", { query: searchViewerQuery });
+        } else {
+          appendLog("[ERROR] Please provide a query for the Search Viewer tool.");
+        }
         break;
       default:
         appendLog("Unknown tool selected.");
@@ -254,51 +303,58 @@ const VideoPlayerDashboard = () => {
           <li>
             <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "discovery" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#2626a3]"}`}
-              onClick={() => setSelectedTool("discovery")}
+              onClick={() => handleSelectTool("discovery")}
               disabled={scanning}
             >🔍 Camera Discovery</button>
           </li>
           <li>
             <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "scan" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
-              onClick={() => setSelectedTool("scan")}
+              onClick={() => handleSelectTool("scan")}
               disabled={scanning}
             >🛰️ CCTV Network Scan</button>
           </li>
           <li>
             <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "xray" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
-              onClick={() => setSelectedTool("xray")}
+              onClick={() => handleSelectTool("xray")}
               disabled={scanning}
             >⚡️ X-Ray Scan</button>
           </li>
           <li>
             <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "attack" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
-              onClick={() => setSelectedTool("attack")}
+              onClick={() => handleSelectTool("attack")}
               disabled={scanning}
             >🔑 RTSP Attack</button>
           </li>
           <li>
             <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "exploit" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
-              onClick={() => setSelectedTool("exploit")}
+              onClick={() => handleSelectTool("exploit")}
               disabled={scanning}
             >💀 Camera Exploitation</button>
           </li>
           <li>
             <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "kamerka" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
-              onClick={() => setSelectedTool("kamerka")}
+              onClick={() => handleSelectTool("kamerka")}
               disabled={scanning}
             >📸 Kamerka Scan</button>
           </li>
           <li>
             <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "shinobi" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
-              onClick={() => setSelectedTool("shinobi")}
+              onClick={() => handleSelectTool("shinobi")}
               disabled={scanning}
             >📹 Shinobi NVR</button>
+          </li>
+          <li>
+            <button
+              className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "search_viewer" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
+              onClick={() => handleSelectTool("search_viewer")}
+              disabled={scanning}
+            >🔎 Search Viewer</button>
           </li>
         </ul>
         <div className="px-6 pb-2 mt-2 flex gap-2 flex-col">
@@ -326,7 +382,16 @@ const VideoPlayerDashboard = () => {
       <main className="flex-1 flex flex-col px-0 py-2">
         <div className="flex flex-row h-[64vh] max-h-[700px] w-full gap-6">
           <section className="flex-1 rounded-2xl bg-gradient-to-br from-[#18181b]/70 to-[#232323]/90 shadow-2xl border border-[#222] flex flex-col p-0">
-            <VideoPlayer url={playerUrl} />
+            {selectedTool === 'search_viewer' && searchViewerHtml ? (
+              <iframe
+                srcDoc={searchViewerHtml}
+                className="w-full h-full border-0 rounded-2xl"
+                title="Search Viewer Result"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            ) : (
+              <VideoPlayer url={playerUrl} />
+            )}
           </section>
           <aside className="w-80 min-w-[280px] flex flex-col gap-2">
             <ToolOptionsPanel
@@ -336,6 +401,8 @@ const VideoPlayerDashboard = () => {
               shodanKey={shodanKey}
               setShodanKey={setShodanKey}
               scanning={scanning}
+              searchViewerQuery={searchViewerQuery}
+              setSearchViewerQuery={setSearchViewerQuery}
             />
             <ToolStatusPanel logs={scanLogs} scanning={scanning} tool={selectedTool} />
           </aside>

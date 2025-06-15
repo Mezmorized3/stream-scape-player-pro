@@ -1,4 +1,4 @@
- _____                            _             ____
+_____                            _             ____
 |_   _|                          | |           / __ \
   | |  _ __ ___  _ __   __ _ _ __| | __ _ _ __ | |  | |_ __ __ _ _ __   __ _  ___
   | | | '_ ` _ \| '_ \ / _` | '__| |/ _` | '_ \| |  | | '__/ _` | '_ \ / _` |/ __|
@@ -17,7 +17,7 @@ A comprehensive CCTV security testing platform that integrates multiple penetrat
 - **Frontend**: React, TypeScript, Tailwind CSS, Vite
 - **Backend**: Flask (Python)
 - **NVR**: Shinobi Systems
-- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, xray, Kamerka
+- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, xray, Kamerka, Search_Viewer
 
 ## 🚀 Quick Start
 
@@ -58,7 +58,7 @@ cd server
 
 2. **Install Python dependencies**
 ```bash
-pip install flask flask-cors requests
+pip install flask flask-cors requests beautifulsoup4 googlesearch-python
 ```
 
 3. **Clone security tools**
@@ -83,6 +83,9 @@ pip install kamerka
 
 # IPCam Search Protocol
 git clone https://github.com/mcw0/ipcam_search_protocol.git
+
+# Search_Viewer
+git clone https://github.com/G3et/Search_Viewer.git
 
 # Shinobi NVR
 git clone https://gitlab.com/Shinobi-Systems/Shinobi.git
@@ -217,8 +220,6 @@ def kamerka():
     else:
         return jsonify({'error': 'A target country or network is required.'})
 
-    return jsonify(run_tool(cmd))
-
 @app.route('/exploit', methods=['POST'])
 def exploit():
     """EyePwn camera exploitation"""
@@ -232,6 +233,54 @@ def exploit():
         'python3', 'EyePwn/eyePwn.py', 
         '--target', target, '--json'
     ]))
+
+@app.route('/search-viewer')
+def search_viewer():
+    """Search_Viewer OSINT tool"""
+    query = request.args.get('query')
+    if not query:
+        return jsonify({'error': 'Query parameter is required'})
+
+    # Define the path to the Search_Viewer tool
+    tool_dir = 'Search_Viewer'
+    script_path = os.path.join(tool_dir, 'search_viewer.py')
+    html_output_path = os.path.join(tool_dir, 'search_viewer.html')
+
+    # Run the tool. It generates an HTML file.
+    cmd = ['python3', script_path, query]
+    
+    try:
+        # We run this within the tool's directory for it to find its files
+        proc = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True, 
+            cwd=os.path.abspath(tool_dir),
+            timeout=300
+        )
+
+        logs = proc.stdout.strip()
+        error_log = proc.stderr.strip() if proc.returncode != 0 else None
+
+        html_content = None
+        if os.path.exists(html_output_path):
+            with open(html_output_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            os.remove(html_output_path)
+
+        response = {'output': logs}
+        if html_content:
+            response['html_content'] = html_content
+        if error_log:
+            # If there's an error, send it back to the frontend
+            response['error'] = (response.get('error', '') + ' ' + error_log).strip()
+        
+        return jsonify(response)
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Search_Viewer command timed out'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/search-protocol')
 def search_protocol():
@@ -312,10 +361,12 @@ node shinobi.js
    - **Kamerka Scan**: Discover RTSP streams using Shodan
    - **Camera Exploitation**: Exploit vulnerabilities with EyePwn
    - **Shinobi NVR**: Manage NVR platform
+   - **Search Viewer**: OSINT data collection and graph generation
 
 4. **Choose a target**:
    - Select a country from the dropdown to scan its public IP ranges.
    - Or, manually enter a specific network/subnet (e.g., `192.168.1.0/24`).
+   - For Search Viewer, enter a search query.
 
 5. **Run tools** and view results in real-time.
 
@@ -408,6 +459,7 @@ ImperialScan/
 │   ├── EyePwn/              # Camera exploitation
 │   ├── Ingram/              # Camera discovery
 │   ├── ipcam_search_protocol/ # IP camera search
+│   ├── Search_Viewer/       # OSINT graph tool
 │   └── Shinobi/            # NVR platform
 └── README.md
 ```
@@ -443,6 +495,11 @@ ImperialScan/
 - Discovers RTSP streams from around the world
 - Uses Shodan search engine
 - Can search by country or network
+
+### Search_Viewer
+- OSINT data collection from search engines
+- Generates interactive graphs of connections
+- Useful for mapping relationships and discovering information
 
 ### IPCam Search Protocol
 - Protocol-level camera discovery
