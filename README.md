@@ -148,12 +148,13 @@ def discover():
         # A real implementation needs a background task queue (e.g., Celery).
         results = []
         for network in ip_ranges[:5]: # Limiting to 5 for demo
-            # Assuming 'run_tool' returns a dict with 'output' or 'error'
             result_data = run_tool(['python3', 'Ingram/ingram.py', '--subnet', network, '--json'])
-            if 'error' not in result_data and 'output' in result_data:
-                # Assuming the output is a list of dictionaries (or can be parsed into one)
-                if isinstance(result_data['output'], list):
-                    results.extend(result_data['output'])
+            # run_tool returns a list on success, or a dict with 'error' on failure
+            if isinstance(result_data, list):
+                results.extend(result_data)
+            elif isinstance(result_data, dict) and 'error' in result_data:
+                # Optional: log the error for this specific range
+                print(f"Error scanning {network}: {result_data['error']}")
         return jsonify(results)
 
     network = request.args.get('network', '192.168.1.0/24')
@@ -476,12 +477,13 @@ def discover():
         # A real implementation needs a background task queue (e.g., Celery).
         results = []
         for network in ip_ranges[:5]: # Limiting to 5 for demo
-            # Assuming 'run_tool' returns a dict with 'output' or 'error'
             result_data = run_tool(['python3', 'Ingram/ingram.py', '--subnet', network, '--json'])
-            if 'error' not in result_data and 'output' in result_data:
-                # Assuming the output is a list of dictionaries (or can be parsed into one)
-                if isinstance(result_data['output'], list):
-                    results.extend(result_data['output'])
+            # run_tool returns a list on success, or a dict with 'error' on failure
+            if isinstance(result_data, list):
+                results.extend(result_data)
+            elif isinstance(result_data, dict) and 'error' in result_data:
+                # Optional: log the error for this specific range
+                print(f"Error scanning {network}: {result_data['error']}")
         return jsonify(results)
 
     network = request.args.get('network', '192.168.1.0/24')
