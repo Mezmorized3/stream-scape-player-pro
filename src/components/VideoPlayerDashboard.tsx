@@ -114,6 +114,10 @@ const VideoPlayerDashboard = () => {
           }
         }
         break;
+      case "shinobi":
+        // Shinobi configuration and scanning
+        runTool("shinobi");
+        break;
       default:
         appendLog("Unknown tool selected.");
         break;
@@ -175,6 +179,13 @@ const VideoPlayerDashboard = () => {
               disabled={scanning}
             >💀 Camera Exploitation</button>
           </li>
+          <li>
+            <button
+              className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "shinobi" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
+              onClick={() => setSelectedTool("shinobi")}
+              disabled={scanning}
+            >📹 Shinobi NVR</button>
+          </li>
         </ul>
         <div className="px-6 pb-2 mt-2 flex gap-2 flex-col">
           <button
@@ -194,7 +205,7 @@ const VideoPlayerDashboard = () => {
           </button>
         </div>
         <div className="px-7 py-0 mt-auto text-xs text-muted-foreground">
-          Integrates: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch (via Flask server)
+          Integrates: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, Shinobi NVR (via Flask server)
         </div>
       </nav>
       {/* MAIN DASHBOARD */}

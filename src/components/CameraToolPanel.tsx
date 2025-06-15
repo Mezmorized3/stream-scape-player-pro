@@ -1,6 +1,6 @@
 
 import { clsx } from "clsx";
-import { Play, Search, Eye, Crosshair, Video, Rss } from "lucide-react";
+import { Play, Search, Eye, Crosshair, Video, Rss, MonitorSpeaker } from "lucide-react";
 
 const tools = [
   {
@@ -26,6 +26,12 @@ const tools = [
     label: "Camera Exploitation",
     icon: <Eye size={20} />,
     desc: "Exploit known camera vulns (EyePwn, Ingram)",
+  },
+  {
+    id: "shinobi",
+    label: "Shinobi NVR",
+    icon: <MonitorSpeaker size={20} />,
+    desc: "Open-source CCTV/NVR platform configuration and monitoring",
   },
 ];
 
@@ -94,7 +100,7 @@ export default function CameraToolPanel({
         </button>
       </div>
       <div className="px-7 py-0 mt-auto text-xs text-muted-foreground">
-        Integrates with: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch (mock)
+        Integrates with: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, Shinobi NVR (mock)
       </div>
     </nav>
   );

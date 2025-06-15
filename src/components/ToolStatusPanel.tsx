@@ -15,6 +15,7 @@ export default function ToolStatusPanel({
     scan: "CCTV Network Scan",
     attack: "RTSP Attack",
     exploit: "Camera Exploitation",
+    shinobi: "Shinobi NVR",
   }[tool] || "Unknown";
   return (
     <section className="w-full rounded-lg bg-[#181a20]/95 border border-[#23272f] p-4 shadow-inner h-[320px] overflow-auto flex flex-col">
