@@ -138,7 +138,9 @@ const VideoPlayerDashboard = () => {
     <div className="flex h-screen">
       {/* LEFT SIDEBAR - Tools and network input */}
       <nav className="w-72 min-w-[180px] border-r border-sidebar-border bg-gradient-to-b from-[#1e1e1e]/95 to-[#232323]/96 px-0 py-6 flex flex-col gap-2 h-full shadow-lg">
-        <h1 className="px-7 text-2xl font-bold mb-7 tracking-tight text-[#0084ff]">VideoXCCTV</h1>
+        <div className="px-7 mb-7">
+          <pre className="text-2xl font-mono font-bold tracking-tight text-[#0084ff]">Imperial Scan</pre>
+        </div>
         <div className="px-6 mb-2">
           <label className="block text-xs mb-1 text-[#a3a3a3]">Network/Subnet:</label>
           <input
@@ -227,3 +229,4 @@ const VideoPlayerDashboard = () => {
   );
 };
 export default VideoPlayerDashboard;
+

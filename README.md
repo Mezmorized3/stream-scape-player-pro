@@ -1,5 +1,16 @@
 
-# VideoXCCTV - CCTV Security Testing Platform
+```
+ _____                            _             ____
+|_   _|                          | |           / __ \
+  | |  _ __ ___  _ __   __ _ _ __| | __ _ _ __ | |  | |_ __ __ _ _ __   __ _  ___
+  | | | '_ ` _ \| '_ \ / _` | '__| |/ _` | '_ \| |  | | '__/ _` | '_ \ / _` |/ __|
+ _| |_| | | | | | |_) | (_| | |  | | (_| | | | | |__| | | | (_| | | | | (_| | (__
+|_____|_| |_| |_| .__/ \__,_|_|  |_|\__,_|_| |_|\____/|_|  \__,_|_| |_|\__,_|\___|
+                | |
+                |_|
+```
+
+# Imperial Scan - CCTV Security Testing Platform
 
 A comprehensive CCTV security testing platform that integrates multiple penetration testing tools with a modern React dashboard and Shinobi NVR capabilities.
 
@@ -181,10 +192,10 @@ def shinobi():
 @app.route('/health')
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'message': 'VideoXCCTV API is running'})
+    return jsonify({'status': 'healthy', 'message': 'Imperial Scan API is running'})
 
 if __name__ == '__main__':
-    print("Starting VideoXCCTV Flask Server...")
+    print("Starting Imperial Scan Flask Server...")
     print("Frontend should be running on http://localhost:8080")
     print("API will be available on http://localhost:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)
@@ -238,7 +249,7 @@ node shinobi.js
 ## 📁 Project Structure
 
 ```
-VideoXCCTV/
+ImperialScan/
 ├── src/                      # React frontend
 │   ├── components/
 │   │   ├── VideoPlayerDashboard.tsx
