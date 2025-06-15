@@ -1,8 +1,8 @@
 import { useState } from "react";
-import CameraToolPanel from "./CameraToolPanel";
 import VideoPlayer from "./VideoPlayer";
 import CameraList from "./CameraList";
 import ToolStatusPanel from "./ToolStatusPanel";
+import ToolOptionsPanel from "./ToolOptionsPanel";
 
 // Generic shape for camera discovery result from backend (covers rtsp_url/address/url)
 type BackendCamera = {
@@ -42,6 +42,7 @@ const VideoPlayerDashboard = () => {
   const [playerUrl, setPlayerUrl] = useState<string>("");
   const [network, setNetwork] = useState(defaultNetwork);
   const [country, setCountry] = useState("");
+  const [exploitTarget, setExploitTarget] = useState<string>("");
 
   // Helper to add logs to tool status panel
   function appendLog(line: string) {
@@ -131,9 +132,10 @@ const VideoPlayerDashboard = () => {
         break;
       case "exploit":
         {
-          const target = window.prompt("Target RTSP/Camera URL or IP:");
-          if (target) {
-            runTool("exploit", "POST", { target });
+          if (exploitTarget) {
+            runTool("exploit", "POST", { target: exploitTarget });
+          } else {
+            appendLog("[ERROR] Please provide a target for the exploit tool.");
           }
         }
         break;
@@ -266,6 +268,12 @@ const VideoPlayerDashboard = () => {
             <VideoPlayer url={playerUrl} />
           </section>
           <aside className="w-80 min-w-[280px] flex flex-col gap-2">
+            <ToolOptionsPanel
+              selectedTool={selectedTool}
+              exploitTarget={exploitTarget}
+              setExploitTarget={setExploitTarget}
+              scanning={scanning}
+            />
             <ToolStatusPanel logs={scanLogs} scanning={scanning} tool={selectedTool} />
           </aside>
         </div>

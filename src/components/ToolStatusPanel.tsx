@@ -18,7 +18,7 @@ export default function ToolStatusPanel({
     shinobi: "Shinobi NVR",
   }[tool] || "Unknown";
   return (
-    <section className="w-full rounded-lg bg-[#181a20]/95 border border-[#23272f] p-4 shadow-inner h-[320px] overflow-auto flex flex-col">
+    <section className="w-full rounded-lg bg-[#181a20]/95 border border-[#23272f] p-4 shadow-inner flex-1 overflow-auto flex flex-col min-h-0">
       <div className="flex items-center gap-3 mb-3">
         {scanning ? <Loader2 className="animate-spin text-[#0084ff]" /> : null}
         <div className="font-bold text-base">{toolLabel} Logs</div>
