@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import VideoPlayer from "./VideoPlayer";
 import CameraList from "./CameraList";
@@ -126,6 +127,9 @@ const VideoPlayerDashboard = () => {
       case "scan":
         runTool("scan");
         break;
+      case "xray":
+        runTool("xray");
+        break;
       case "attack":
         // Cameradar RTSP attack (GET request)
         runTool("cameradar");
@@ -217,6 +221,13 @@ const VideoPlayerDashboard = () => {
               onClick={() => setSelectedTool("scan")}
               disabled={scanning}
             >🛰️ CCTV Network Scan</button>
+          </li>
+          <li>
+            <button
+              className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "xray" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
+              onClick={() => setSelectedTool("xray")}
+              disabled={scanning}
+            >⚡️ X-Ray Scan</button>
           </li>
           <li>
             <button

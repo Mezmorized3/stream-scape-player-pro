@@ -1,5 +1,3 @@
-
-```
  _____                            _             ____
 |_   _|                          | |           / __ \
   | |  _ __ ___  _ __   __ _ _ __| | __ _ _ __ | |  | |_ __ __ _ _ __   __ _  ___
@@ -19,7 +17,7 @@ A comprehensive CCTV security testing platform that integrates multiple penetrat
 - **Frontend**: React, TypeScript, Tailwind CSS, Vite
 - **Backend**: Flask (Python)
 - **NVR**: Shinobi Systems
-- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch
+- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, xray
 
 ## 🚀 Quick Start
 
@@ -76,6 +74,9 @@ git clone https://github.com/mauri870/Ingram.git
 
 # Cameradar (requires Go)
 go install github.com/Ullaakut/cameradar/cmd/cameradar@latest
+
+# xray (requires Go)
+go install github.com/evilsocket/xray/cmd/xray@latest
 
 # IPCam Search Protocol
 git clone https://github.com/mcw0/ipcam_search_protocol.git
@@ -138,6 +139,26 @@ def scan():
 @app.route('/discover')
 def discover():
     """Ingram camera discovery"""
+    country_code = request.args.get('country')
+
+    if country_code:
+        ip_ranges = get_country_ips(country_code)
+        if not ip_ranges:
+            return jsonify({'error': f'Could not get IP ranges for {country_code}'})
+        
+        # NOTE: Scanning all ranges is a long task!
+        # This example just returns the first 5 ranges for demonstration.
+        # A real implementation needs a background task queue (e.g., Celery).
+        results = []
+        for network in ip_ranges[:5]: # Limiting to 5 for demo
+            # Assuming 'run_tool' returns a dict with 'output' or 'error'
+            result_data = run_tool(['python3', 'Ingram/ingram.py', '--subnet', network, '--json'])
+            if 'error' not in result_data and 'output' in result_data:
+                # Assuming the output is a list of dictionaries (or can be parsed into one)
+                if isinstance(result_data['output'], list):
+                    results.extend(result_data['output'])
+        return jsonify(results)
+
     network = request.args.get('network', '192.168.1.0/24')
     return jsonify(run_tool([
         'python3', 'Ingram/ingram.py', 
@@ -151,6 +172,27 @@ def cameradar():
     return jsonify(run_tool([
         'cameradar', '--addresses', network, '--json'
     ]))
+
+@app.route('/xray')
+def xray():
+    """Xray network reconnaissance"""
+    country_code = request.args.get('country')
+    network = request.args.get('network')
+
+    target = network
+    if country_code:
+        ip_ranges = get_country_ips(country_code)
+        if not ip_ranges:
+            return jsonify({'error': f'Could not get IP ranges for {country_code}'})
+        # NOTE: For demonstration, we'll scan the first range.
+        # A real implementation needs a task queue for full country scans.
+        target = ip_ranges[0]
+    
+    if not target:
+        target = '192.168.1.0/24' # Default if no target specified
+
+    # Assumes xray is in the system's PATH.
+    return jsonify(run_tool(['xray', '-json', target]))
 
 @app.route('/exploit', methods=['POST'])
 def exploit():
@@ -240,6 +282,7 @@ node shinobi.js
 3. **Select a tool** from the left panel:
    - **Camera Discovery**: Find IP cameras using Ingram
    - **CCTV Network Scan**: Scan for vulnerable CCTV using OpenCCTV
+   - **X-Ray Scan**: Network reconnaissance with xray
    - **RTSP Attack**: Brute force RTSP streams with Cameradar
    - **Camera Exploitation**: Exploit vulnerabilities with EyePwn
    - **Shinobi NVR**: Manage NVR platform
@@ -364,6 +407,11 @@ ImperialScan/
 - RTSP brute forcing
 - Stream discovery
 - Authentication bypass
+
+### xray
+- Network OSINT reconnaissance
+- Port and service discovery
+- Banner grabbing and fingerprinting
 
 ### IPCam Search Protocol
 - Protocol-level camera discovery
