@@ -244,7 +244,83 @@ node shinobi.js
    - **Camera Exploitation**: Exploit vulnerabilities with EyePwn
    - **Shinobi NVR**: Manage NVR platform
 
-4. **Run tools** and view results in real-time
+4. **Choose a target**:
+   - Select a country from the dropdown to scan its public IP ranges.
+   - Or, manually enter a specific network/subnet (e.g., `192.168.1.0/24`).
+
+5. **Run tools** and view results in real-time.
+
+## Country-Based Scanning
+
+The dashboard now supports selecting a target country for scans. This feature works by passing a `country` query parameter (e.g., `?country=US`) to the backend API endpoints.
+
+To handle this, you need to update your `app.py` to fetch IP ranges for the given country code and process them.
+
+### 1. Add Helper Function to `app.py`
+
+First, add a helper function to fetch IP blocks from a service like IPdeny. Make sure you have `requests` installed (`pip install requests`).
+
+```python
+import requests
+# ... other imports
+
+IPDENY_URL = "http://www.ipdeny.com/ipblocks/data/countries/{}.zone"
+
+def get_country_ips(country_code):
+    """Fetches IP blocks for a given country."""
+    if not country_code or len(country_code) != 2:
+        return None
+    try:
+        # Fetch the .zone file containing CIDR blocks
+        response = requests.get(IPDENY_URL.format(country_code.lower()), timeout=10)
+        response.raise_for_status()
+        # Return a list of IP ranges
+        return response.text.strip().split('\n')
+    except requests.RequestException as e:
+        print(f"Error fetching IP data for {country_code}: {e}")
+        return None
+```
+
+### 2. Update Flask Routes
+
+Next, modify your API routes to handle the `country` parameter. Here's an example for the `/discover` route:
+
+```python
+@app.route('/discover')
+def discover():
+    """Ingram camera discovery"""
+    country_code = request.args.get('country')
+
+    if country_code:
+        ip_ranges = get_country_ips(country_code)
+        if not ip_ranges:
+            return jsonify({'error': f'Could not get IP ranges for {country_code}'})
+        
+        # NOTE: Scanning all ranges is a long task!
+        # This example just returns the first 5 ranges for demonstration.
+        # A real implementation needs a background task queue (e.g., Celery).
+        results = []
+        for network in ip_ranges[:5]: # Limiting to 5 for demo
+            # Assuming 'run_tool' returns a dict with 'output' or 'error'
+            result_data = run_tool(['python3', 'Ingram/ingram.py', '--subnet', network, '--json'])
+            if 'error' not in result_data and 'output' in result_data:
+                # Assuming the output is a list of dictionaries (or can be parsed into one)
+                if isinstance(result_data['output'], list):
+                    results.extend(result_data['output'])
+        return jsonify(results)
+
+    network = request.args.get('network', '192.168.1.0/24')
+    return jsonify(run_tool([
+        'python3', 'Ingram/ingram.py', 
+        '--subnet', network, '--json'
+    ]))
+```
+
+### ⚠️ Important: Handling Long-Running Scans
+
+Scanning all IP ranges for an entire country can take hours and will **cause the server to time out** on a standard HTTP request. The example above only scans the first 5 IP ranges for demonstration purposes.
+
+For a production-ready application, you must implement a **background task queue** (like [Celery](https://docs.celeryq.dev/en/stable/) with Redis or RabbitMQ) to handle these long-running jobs asynchronously. The API endpoint should start the background job and immediately return a job ID. The frontend can then poll another endpoint for the status and results of that job.
 
 ## 📁 Project Structure
 

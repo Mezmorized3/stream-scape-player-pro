@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import CameraToolPanel from "./CameraToolPanel";
 import VideoPlayer from "./VideoPlayer";
@@ -22,6 +21,19 @@ type CameraInfo = {
 
 const defaultNetwork = "192.168.1.0/24";
 
+const countries = [
+  { name: "Georgia", code: "GE" },
+  { name: "Romania", code: "RO" },
+  { name: "Ukraine", code: "UA" },
+  { name: "Russia", code: "RU" },
+  { name: "United States", code: "US" },
+  { name: "Israel", code: "IL" },
+  { name: "Palestine", code: "PS" },
+  { name: "Syria", code: "SY" },
+  { name: "Iran", code: "IR" },
+  { name: "Lebanon", code: "LB" },
+];
+
 const VideoPlayerDashboard = () => {
   const [selectedTool, setSelectedTool] = useState("discovery");
   const [scanning, setScanning] = useState(false);
@@ -29,6 +41,7 @@ const VideoPlayerDashboard = () => {
   const [cameras, setCameras] = useState<CameraInfo[]>([]);
   const [playerUrl, setPlayerUrl] = useState<string>("");
   const [network, setNetwork] = useState(defaultNetwork);
+  const [country, setCountry] = useState("");
 
   // Helper to add logs to tool status panel
   function appendLog(line: string) {
@@ -59,12 +72,22 @@ const VideoPlayerDashboard = () => {
   async function runTool(path: string, method: "GET" | "POST" = "GET", body?: any) {
     setScanning(true);
     setScanLogs([]);
-    appendLog(`> Running ${path}... (${network})`);
+    const target = country ? `country ${country}` : network;
+    appendLog(`> Running ${path}... (${target})`);
     try {
       const opts: RequestInit = method === "POST"
         ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
         : {};
-      const query = method === "GET" && network ? `?network=${encodeURIComponent(network)}` : "";
+      
+      let query = "";
+      if (method === "GET") {
+        if (country) {
+          query = `?country=${country}`;
+        } else if (network) {
+          query = `?network=${encodeURIComponent(network)}`;
+        }
+      }
+
       const response = await fetch(`http://localhost:5000/${path}${query}`, opts);
       const data = await response.json();
       if (data.error) {
@@ -142,14 +165,40 @@ const VideoPlayerDashboard = () => {
           <pre className="text-2xl font-mono font-bold tracking-tight text-[#0084ff]">Imperial Scan</pre>
         </div>
         <div className="px-6 mb-2">
-          <label className="block text-xs mb-1 text-[#a3a3a3]">Network/Subnet:</label>
+          <label className="block text-xs mb-1 text-[#a3a3a3]">Target Country:</label>
+          <select
+            value={country}
+            onChange={(e) => {
+              setCountry(e.target.value);
+              if (e.target.value) {
+                setNetwork("");
+              }
+            }}
+            className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none"
+            disabled={scanning}
+          >
+            <option value="">-- Select Country --</option>
+            {countries.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="px-6 mb-2">
+          <label className="block text-xs mb-1 text-[#a3a3a3]">Network/Subnet (or):</label>
           <input
             type="text"
             value={network}
-            onChange={e => setNetwork(e.target.value)}
+            onChange={e => {
+              setNetwork(e.target.value);
+              if (e.target.value) {
+                setCountry('');
+              }
+            }}
             className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none"
             placeholder="192.168.1.0/24"
-            disabled={scanning}
+            disabled={scanning || !!country}
           />
         </div>
         <ul className="flex-1 flex flex-col gap-2">
@@ -191,7 +240,7 @@ const VideoPlayerDashboard = () => {
         </ul>
         <div className="px-6 pb-2 mt-2 flex gap-2 flex-col">
           <button
-            className={`rounded-lg px-4 py-3 w-full font-semibold bg-[#0084ff] hover:bg-[#0066cc] transition-colors shadow ${scanning ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`rounded-lg px-4 py-3 w-full font-semibold bg-[#0084ff] hover:bg-[#0066cc] transition-colors ${scanning ? "opacity-60 cursor-not-allowed" : ""}`}
             onClick={handleRunTool}
             disabled={scanning}
           >
@@ -229,4 +278,3 @@ const VideoPlayerDashboard = () => {
   );
 };
 export default VideoPlayerDashboard;
-
