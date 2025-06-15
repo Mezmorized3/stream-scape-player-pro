@@ -5,10 +5,12 @@ interface ToolOptionsPanelProps {
   selectedTool: string;
   exploitTarget: string;
   setExploitTarget: (target: string) => void;
+  shodanKey: string;
+  setShodanKey: (key: string) => void;
   scanning: boolean;
 }
 
-const ExploitOptions = ({ exploitTarget, setExploitTarget, scanning }: Omit<ToolOptionsPanelProps, 'selectedTool'>) => {
+const ExploitOptions = ({ exploitTarget, setExploitTarget, scanning }: Omit<ToolOptionsPanelProps, 'selectedTool' | 'shodanKey' | 'setShodanKey'>) => {
   return (
     <div>
       <h3 className="font-semibold text-base mb-2">Exploit Options</h3>
@@ -28,10 +30,35 @@ const ExploitOptions = ({ exploitTarget, setExploitTarget, scanning }: Omit<Tool
   );
 };
 
+const KamerkaOptions = ({ shodanKey, setShodanKey, scanning }: Pick<ToolOptionsPanelProps, 'shodanKey' | 'setShodanKey' | 'scanning'>) => {
+  return (
+    <div>
+      <h3 className="font-semibold text-base mb-2">Kamerka Options</h3>
+      <label htmlFor="shodan-key" className="block text-xs mb-1 text-[#a3a3a3]">
+        Shodan API Key:
+      </label>
+      <input
+        id="shodan-key"
+        type="password"
+        value={shodanKey}
+        onChange={(e) => setShodanKey(e.target.value)}
+        className="w-full px-3 py-2 rounded bg-[#191f26] border border-[#30353a] text-white text-sm mb-2 outline-none"
+        placeholder="Shodan API Key"
+        disabled={scanning}
+      />
+       <p className="text-xs text-muted-foreground">
+        API Key is required and saved in your browser's local storage.
+      </p>
+    </div>
+  );
+};
+
 export default function ToolOptionsPanel({
   selectedTool,
   exploitTarget,
   setExploitTarget,
+  shodanKey,
+  setShodanKey,
   scanning,
 }: ToolOptionsPanelProps) {
   const renderToolOptions = () => {
@@ -41,6 +68,14 @@ export default function ToolOptionsPanel({
           <ExploitOptions
             exploitTarget={exploitTarget}
             setExploitTarget={setExploitTarget}
+            scanning={scanning}
+          />
+        );
+      case 'kamerka':
+        return (
+          <KamerkaOptions
+            shodanKey={shodanKey}
+            setShodanKey={setShodanKey}
             scanning={scanning}
           />
         );

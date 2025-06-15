@@ -17,7 +17,7 @@ A comprehensive CCTV security testing platform that integrates multiple penetrat
 - **Frontend**: React, TypeScript, Tailwind CSS, Vite
 - **Backend**: Flask (Python)
 - **NVR**: Shinobi Systems
-- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, xray
+- **Security Tools**: OpenCCTV, EyePwn, Ingram, Cameradar, IPCamSearch, xray, Kamerka
 
 ## 🚀 Quick Start
 
@@ -78,6 +78,9 @@ go install github.com/Ullaakut/cameradar/cmd/cameradar@latest
 # xray (requires Go)
 go install github.com/evilsocket/xray/cmd/xray@latest
 
+# Kamerka (Python)
+pip install kamerka
+
 # IPCam Search Protocol
 git clone https://github.com/mcw0/ipcam_search_protocol.git
 
@@ -98,6 +101,7 @@ from flask_cors import CORS
 import subprocess
 import json
 import os
+import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -194,6 +198,27 @@ def xray():
     # Assumes xray is in the system's PATH.
     return jsonify(run_tool(['xray', '-json', target]))
 
+@app.route('/kamerka')
+def kamerka():
+    """Kamerka RTSP stream finder"""
+    shodan_key = request.args.get('shodan_key')
+    if not shodan_key:
+        return jsonify({'error': 'Shodan API key is required for this tool.'})
+
+    country_code = request.args.get('country')
+    network = request.args.get('network')
+
+    cmd = ['kamerka', '--json', '--shodan-key', shodan_key]
+    
+    if country_code:
+        cmd.extend(['-c', country_code])
+    elif network:
+        cmd.extend(['-a', network])
+    else:
+        return jsonify({'error': 'A target country or network is required.'})
+
+    return jsonify(run_tool(cmd))
+
 @app.route('/exploit', methods=['POST'])
 def exploit():
     """EyePwn camera exploitation"""
@@ -284,6 +309,7 @@ node shinobi.js
    - **CCTV Network Scan**: Scan for vulnerable CCTV using OpenCCTV
    - **X-Ray Scan**: Network reconnaissance with xray
    - **RTSP Attack**: Brute force RTSP streams with Cameradar
+   - **Kamerka Scan**: Discover RTSP streams using Shodan
    - **Camera Exploitation**: Exploit vulnerabilities with EyePwn
    - **Shinobi NVR**: Manage NVR platform
 
@@ -412,6 +438,11 @@ ImperialScan/
 - Network OSINT reconnaissance
 - Port and service discovery
 - Banner grabbing and fingerprinting
+
+### Kamerka
+- Discovers RTSP streams from around the world
+- Uses Shodan search engine
+- Can search by country or network
 
 ### IPCam Search Protocol
 - Protocol-level camera discovery

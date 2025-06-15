@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VideoPlayer from "./VideoPlayer";
 import CameraList from "./CameraList";
 import ToolStatusPanel from "./ToolStatusPanel";
@@ -44,6 +44,17 @@ const VideoPlayerDashboard = () => {
   const [network, setNetwork] = useState(defaultNetwork);
   const [country, setCountry] = useState("");
   const [exploitTarget, setExploitTarget] = useState<string>("");
+  const [shodanKey, setShodanKey] = useState(
+    () => localStorage.getItem("shodanKey") || ""
+  );
+
+  useEffect(() => {
+    if (shodanKey) {
+      localStorage.setItem("shodanKey", shodanKey);
+    } else {
+      localStorage.removeItem("shodanKey");
+    }
+  }, [shodanKey]);
 
   // Helper to add logs to tool status panel
   function appendLog(line: string) {
@@ -71,26 +82,55 @@ const VideoPlayerDashboard = () => {
   }
 
   // Run tool by endpoint. For POST, 'body' can be provided.
-  async function runTool(path: string, method: "GET" | "POST" = "GET", body?: any) {
+  async function runTool(
+    path: string,
+    method: "GET" | "POST" = "GET",
+    body?: any
+  ) {
     setScanning(true);
     setScanLogs([]);
     const target = country ? `country ${country}` : network;
     appendLog(`> Running ${path}... (${target})`);
     try {
-      const opts: RequestInit = method === "POST"
-        ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
-        : {};
-      
+      const opts: RequestInit =
+        method === "POST"
+          ? {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            }
+          : {};
+
       let query = "";
       if (method === "GET") {
+        const params = new URLSearchParams();
         if (country) {
-          query = `?country=${country}`;
+          params.set("country", country);
         } else if (network) {
-          query = `?network=${encodeURIComponent(network)}`;
+          params.set("network", encodeURIComponent(network));
+        }
+
+        // Specific tool params
+        if (path === "kamerka") {
+          if (shodanKey) {
+            params.set("shodan_key", shodanKey);
+          } else {
+            appendLog("[ERROR] Shodan API Key is required for Kamerka.");
+            setScanning(false);
+            return;
+          }
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+          query = `?${queryString}`;
         }
       }
 
-      const response = await fetch(`http://localhost:5000/${path}${query}`, opts);
+      const response = await fetch(
+        `http://localhost:5000/${path}${query}`,
+        opts
+      );
       const data = await response.json();
       if (data.error) {
         appendLog(`[ERROR] ${data.error}`);
@@ -142,6 +182,9 @@ const VideoPlayerDashboard = () => {
             appendLog("[ERROR] Please provide a target for the exploit tool.");
           }
         }
+        break;
+      case "kamerka":
+        runTool("kamerka");
         break;
       case "shinobi":
         // Shinobi configuration and scanning
@@ -245,6 +288,13 @@ const VideoPlayerDashboard = () => {
           </li>
           <li>
             <button
+              className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "kamerka" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
+              onClick={() => setSelectedTool("kamerka")}
+              disabled={scanning}
+            >📸 Kamerka Scan</button>
+          </li>
+          <li>
+            <button
               className={`flex w-full items-center gap-2 px-6 py-3 rounded-lg text-left font-semibold transition-colors ${selectedTool === "shinobi" ? "bg-[#232323] border-[#0084ff] border" : "hover:bg-[#226]"}`}
               onClick={() => setSelectedTool("shinobi")}
               disabled={scanning}
@@ -283,6 +333,8 @@ const VideoPlayerDashboard = () => {
               selectedTool={selectedTool}
               exploitTarget={exploitTarget}
               setExploitTarget={setExploitTarget}
+              shodanKey={shodanKey}
+              setShodanKey={setShodanKey}
               scanning={scanning}
             />
             <ToolStatusPanel logs={scanLogs} scanning={scanning} tool={selectedTool} />
